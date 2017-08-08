@@ -1,0 +1,14 @@
+var offset_gl = %s;
+var offset_cnt = 0;
+var members = [];
+
+while (offset_cnt < 25) {
+    var req_members = API.groups.getMembers({group_id:%s,offset:offset_gl, count:1000});
+    members.push(req_members);
+    offset_gl = offset_gl + 1000;
+    offset_cnt = offset_cnt + 1;
+};
+
+
+var to_return = [offset_gl, members];
+return to_return;
