@@ -73,25 +73,37 @@ def getMembersFromReq(req):
 def callVkApi(method, access_token, **kwargs):
     request = vk_makeRequest(method, access_token, **kwargs)
     response = vk_callRequest(request)
+
+    if 'error' in response:
+        if response['error']['error_code'] == 15:
+            print('no access to group')
+            response = {'count':0,'users':[]}
+        else:
+            while 'error' in response:
+                time.sleep(0.333333)
+                print('calling again...')
+                response = vk_callRequest(request)
     try:
         response = response['response']
-    except:
-        pass
+    except Exception as e:
+        # print(e)
+        response = response
+    # print('response: ', response)
     return response
 
 
 def getGroupUsers(groupid, access_token):
+    # print('\n%s'%groupid)
     ## берет на вход id группы вк
     ## возвращает список id пользователей этой группы
     members_gl = []
     offset = 0 
     g = callVkApi('groups.getMembers', access_token, group_id=groupid,offset=offset)
+    # print(g)
     g = g['count']
     strt = datetime.datetime.now()
-    est = datetime.timedelta(seconds = 0.3333333) * g/25000 * 11/5
-    # print(g)
     if g == 0:
-        print('api method returned no users. perhaps group is blocked')
+        print('api method returned no users. perhaps group is blocked\n')
         return []
     else:
         while offset < g + 25000:
@@ -114,14 +126,19 @@ def getGroupUsers(groupid, access_token):
 
 if __name__ == '__main__':
 
-    flist = ['скулшутеры.txt', 'суицид список групп.txt']
+    flist = ['суицид список групп.txt']
     for f in flist:
+        print(f, '\n')
         dname = f[:-4]
-        os.mkdir(os.getcwd() + '/folders/' + dname)
+        try:
+            os.mkdir(os.getcwd() + '/folders/' + dname)
+        except:
+            print('dir %s exists'%dname)
         gr = loadListFromFile(f)
-        gr = [int(i) for i in gr][:10]
+        gr = [int(i) for i in gr]
         for g in gr:
-            u = getGroupUsers(g, 'b46c3d7c18008f76ee549ed5969721bdf148a1759a2274ce98e4b0e99c3bfd47c39dbd1e13659b0595e4c')
-            with open('%s/%s.txt'%(dname, g), 'w', encoding='utf8') as e:
-                for i in u:
-                    print(i, file=e)
+            u = getGroupUsers(g, loadListFromFile('access_token')[0])
+            e = open(os.getcwd() + '/folders/%s/%s.txt'%(dname, g), 'w', encoding='utf8')
+            for i in u:
+                print(i, file=e)
+            e.close()
